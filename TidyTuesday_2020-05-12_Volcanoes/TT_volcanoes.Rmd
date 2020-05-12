@@ -3,10 +3,10 @@ title: 'TidyTuesday: Colour palettes and volcanoes'
 author: "Liza Bolton"
 date: '2020-05-12'
 output:
+  pdf_document: default
+  html_notebook: default
   html_document:
     df_print: paged
-  html_notebook: default
-  pdf_document: default
 ---
 
 - This session will be recorded and put up on [Past events](https://utoronto.sharepoint.com/sites/ArtSci-STA/ISSC/SitePages/Past-events.aspx)
@@ -149,7 +149,7 @@ table(volcano$primary_volcano_type)
 I want to get rid the (s) and (es).
 
 ```{r}
-volcano_edit <- volcano %>% 
+volcano_edit <- volcano %>%
   mutate(last_eruption_year = parse_number(last_eruption_year)) %>% 
   mutate(primary = gsub("\\s*\\([^\\)]+\\)", "", primary_volcano_type)) %>% 
   mutate(primary = gsub("\\?", "", primary)) %>% 
@@ -222,8 +222,8 @@ volcano_edit %>%
       library = "fa",
       icon = "caret-up",
       iconColor = "red",
-      markerColor = "cadetblue"),
-    label = ~paste0(volcano_name, ", ", last_eruption_year, ", ", primary))
+      markerColor = "orange"),
+    label = ~paste0(volcano_name, ", ", last_eruption_year))
 
 ```
 
