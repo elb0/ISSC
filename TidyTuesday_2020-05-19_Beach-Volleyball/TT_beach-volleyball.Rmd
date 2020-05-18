@@ -1,0 +1,200 @@
+---
+title: 'TidyTuesday: Beach volleyball'
+author: "Liza Bolton"
+date: '2020-05-19'
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+urlcolor: #4B0082
+---
+
+- This session will be recorded and put up on [Past events](https://utoronto.sharepoint.com/sites/ArtSci-STA/ISSC/SitePages/Past-events.aspx)
+- Click the stacked lines at the top left of this panel to open a helfpul navigation pane
+- Remeber to fill out the [weekly check-in](https://forms.office.com/Pages/ResponsePage.aspx?id=JsKqeAMvTUuQN7RtVsVSEOKHUU3SzAJJhmOKjJhDWEpUMFhXUVE4WUNBNzNKUEhCNDBBS1QwN0tSNC4u) by Thursday at 11:30 pm ET. 
+
+# ASA DataFest Q&A
+
+Prof Nathan Taback will drop in to answer questions you might have.
+
+# A quick tour of the ISSC
+
+There are three important parts of the ISSC (well 4, if you count the most important part, YOU!)
+
+- **Slack** is where all the real-time chatting and resource sharing happens.
+- [**SharePoint**](https://utoronto.sharepoint.com/sites/ArtSci-STA/ISSC/SitePages/ISSC-Home.aspx) is an archive for the community where you can find the previous [6 Sigma Sunday newsletters](https://utoronto.sharepoint.com/sites/ArtSci-STA/ISSC/SitePages/6%CF%83-Sundays.aspx), resources and recordings from [past events](https://utoronto.sharepoint.com/sites/ArtSci-STA/ISSC/SitePages/Past-events.aspx), as well as a range of resources in the [General Resources library](https://utoronto.sharepoint.com/sites/ArtSci-STA/ISSC/General%20Resources/Forms/AllItems.aspx).
+- [**ASA DataFest@UofT site**](https://datafestuoft.github.io/) for registration, some suggested resoruces and more information about the competition. https://datafestuoft.github.io/ 
+
+# Mini-challenge
+
+Your mission, should you choose to accept it, is to complete a mini-data visualisation challenge by the end of the day.
+
+## 1. Set up GitHub
+
+You can definitely do this challenge even if you haven't sorted out your GitHub yet, but I'd strongly recommend making this one of your ISSC goals. More information in [the first 6 Sigma Sunday newsletter](https://utoronto.sharepoint.com/sites/ArtSci-STA/ISSC/SitePages/6.aspx). You may wish to create a repository to store this mini-project in called 'ISSC' or 'TidyTuesday' folder. I have one called ['ISSC'](https://github.com/elb0/ISSC) with the files from the this AND the two previous TidyTuesday & Talks.
+
+## 2. Create an R Markdown document 
+Or it could be an R Script, but I prefer RMDs, like what this is written in. It is perfect for when you want your code, outputs and commentary to all be together.
+
+```{r, out.width = "50%", echo=FALSE}
+knitr::include_graphics("images/rmarkdown_wizards.png")
+
+# Notice how I am using a code chunk to load an image and hiding this code with echo=FALSE
+```
+
+## 3. Install/load packages
+
+If you haven't installed `tidyverse` yet, you will need that package for today. It has `dplyr` and `ggplot` in it.
+```{r, out.width = "20%", echo=FALSE}
+knitr::include_graphics("images/tidyverse_celestial.png")
+```
+
+```{r, message=FALSE}
+#install.packages("tidyverse")
+library("tidyverse")
+
+# Notice how I am using message=FALSE in this chunk to suppress the information about loading tidyverse. I don't what this as part of my final document because it isn't very pretty. Always suppress with care though, and if you're running in to issues, make sure to check this.
+```
+
+
+## 4. Load the data for this week.
+
+There is more than one way to get this data. I'm going to use the `tidytuesdayR` package becasue I installed it last week. Choose the way that is right for you from [these options.](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-05-19/readme.md#get-the-data-here)
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2020-05-19')
+vb_matches <- tuesdata$vb_matches
+rm(tuesdata) # remove the original file because we don't need it any more
+```
+
+## 5. Take a look at the data
+```{r}
+glimpse(vb_matches)
+```
+
+## 6. Wrangle the data
+This data is pretty clean and tidy but we might want to play with a few things.
+
+```{r}
+vb_clean <- vb_matches %>% 
+  rowid_to_column(var = "match_ID")    # make an ID columns
+
+l_player1 <- vb_clean %>% 
+  select(match_ID, contains("l_p1"), contains("l_player1")) %>% 
+  rename(setNames(names(.), gsub("l_p1_", "", names(.)))) %>% 
+  rename(player = "l_player1") %>% 
+  select(match_ID, player, everything()) %>%  # will be better with relocate() in dplyr 1.0.0 I think
+  mutate(status = "Lost", player_num = 1)
+
+l_player2 <- vb_clean %>% 
+  select(match_ID, contains("l_p2"), contains("l_player2")) %>% 
+  rename(setNames(names(.), gsub("l_p2_", "", names(.)))) %>% 
+  rename(player = "l_player2") %>% 
+  select(match_ID, player, everything()) %>% 
+    mutate(status = "Lost", player_num = 2)
+
+w_player1 <- vb_clean %>% 
+  select(match_ID, contains("w_p1"), contains("w_player1")) %>% 
+  rename(setNames(names(.), gsub("w_p1_", "", names(.)))) %>% 
+  rename(player = "w_player1") %>% 
+  select(match_ID, player, everything()) %>% 
+  mutate(status = "Won", player_num = 1)
+
+w_player2 <- vb_clean %>% 
+  select(match_ID, contains("w_p2"), contains("w_player2")) %>% 
+  rename(setNames(names(.), gsub("w_p2_", "", names(.)))) %>% 
+  rename(player = "w_player2") %>% 
+  select(match_ID, player, everything()) %>% 
+  mutate(status = "Won", player_num = 1)
+
+# once I wrote this I realised it might be nice to write a function that does these similar steps instead...I'm not going to do that today, but let me know if you give it a go!
+
+player_matches <- bind_rows(l_player1, l_player2, w_player1, w_player2)
+
+# make a dataset with just unchaning information about each player
+player_info <- player_matches %>% 
+  select(player, birthdate, hgt, country) %>% 
+  unique()
+
+# make a dataset with just information about the match
+match_info <- vb_clean %>% 
+  select(-contains("p1"), -contains("p2"), -contains("player"))
+```
+
+
+## 7. Create at least 3 exploratory plots/summary statistics.
+
+You might find the [Cookbook for R graphics from the BBC](https://bbc.github.io/rcookbook/) helpful, as well as the resources in [6 Sigma Sunday #2](https://utoronto.sharepoint.com/sites/ArtSci-STA/ISSC/SitePages/6%CF%83-Sunday--2.aspx) on using dplyr and ggplot.
+
+### Explore!
+
+```{r}
+player_info %>% 
+  ggplot(aes(x = birthdate, y = hgt)) +
+  geom_point(aes(alpha = 0.5)) +
+  geom_smooth()
+
+```
+
+### Explore!
+
+```{r}
+
+```
+
+### Explore!
+
+```{r}
+
+```
+
+
+## 8. Choose one plot to improve and use/include the following:
+
+### A title and subtitle
+```{r}
+
+```
+
+### Labelled axes
+```{r}
+
+```
+
+### A caption acknowledging the data source + your name
+```{r}
+
+```
+
+### An appropriate colour palette
+```{r}
+
+```
+
+### Explicitly use a theme (check out this list of defaults included with ggplot or get the ggtheme package)
+```{r}
+
+```
+
+### BONUS: Add an annotation
+```{r}
+
+```
+
+
+## 9. Save the plot using ggsave().
+
+If you run `?ggsave`, it will tell you that "`ggsave()` is a convenient function for saving a plot. It defaults to saving the last plot that you displayed, using the size of the current graphics device. It also guesses the type of graphics device from the extension."
+
+```{r}
+
+```
+
+
+## 10. Share the plot and link to your commented code with all your working in #portfolio-building with a 1–2 sentence explanation by the end of Tuesday May 19 (bonus if you share it on Twitter with #TidyTuesday). Our ISSC Tweeps are on [this list](https://twitter.com/i/lists/1258455620111515648/members). Message me if you want to be added!
+
+
+Thanks everyone! 
+
+`r emo::ji("bellhop")` Please make sure you fill out the [weekly check-in](https://forms.office.com/Pages/ResponsePage.aspx?id=JsKqeAMvTUuQN7RtVsVSEOKHUU3SzAJJhmOKjJhDWEpUMFhXUVE4WUNBNzNKUEhCNDBBS1QwN0tSNC4u) by Thursday at 11:30 pm ET. 

@@ -1,0 +1,139 @@
+---
+title: 'TidyTuesday: Beach volleyball (mini-project template)'
+author: "Your name here"
+date: '2020-05-19'
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+urlcolor: #4B0082
+---
+
+# Mini-challenge
+
+Your mission, should you choose to accept it, is to complete a mini-data visualisation challenge by the end of the day. You can use and edit this template RMD. My code is here: 
+
+## 1. Set up GitHub
+
+You can definitely do this challenge even if you haven't sorted out your GitHub yet, but I'd strongly recommend making this one of your ISSC goals. More information in [the first 6 Sigma Sunday newsletter](https://utoronto.sharepoint.com/sites/ArtSci-STA/ISSC/SitePages/6.aspx). You may wish to create a repository to store this mini-project in called 'ISSC' or 'TidyTuesday' folder. I have one called ['ISSC'](https://github.com/elb0/ISSC) with the files from the this AND the two previous TidyTuesday & Talks.
+
+## 2. Create an R Markdown document 
+Or it could be an R Script, but I prefer RMDs, like what this is written in. It is perfect for when you want your code, outputs and commentary to all be together.
+
+```{r, out.width = "50%", echo=FALSE}
+knitr::include_graphics("images/rmarkdown_wizards.png")
+
+# Notice how I am using a code chunk to load an image and hiding this code with echo=FALSE
+```
+
+## 3. Install/load packages
+
+If you haven't installed `tidyverse` yet, you will need that package for today. It has `dplyr` and `ggplot` in it.
+```{r, out.width = "20%", echo=FALSE}
+knitr::include_graphics("images/tidyverse_celestial.png")
+```
+
+```{r, message=FALSE}
+#install.packages("tidyverse")
+library("tidyverse")
+
+# Notice how I am using message=FALSE in this chunk to suppress the information about loading tidyverse. I don't what this as part of my final document because it isn't very pretty. Always suppress with care though, and if you're running in to issues, make sure to check this.
+```
+
+
+## 4. Load the data for this week.
+
+There is more than one way to get this data. I'm going to use the `tidytuesdayR` package becasue I installed it last week. Choose the way that is right for you from [these options.](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-05-19/readme.md#get-the-data-here)
+
+```{r}
+
+```
+
+## 5. Take a look at the data
+
+The `glimpse()` function is very useful here. So is `head()` and `str()`.
+
+```{r}
+
+```
+
+## 6. Wrangle the data
+This data is pretty clean and tidy but we might want to play with a few things.
+
+```{r}
+
+```
+
+
+## 7. Create at least 3 exploratory plots/summary statistics.
+
+You might find the [Cookbook for R graphics from the BBC](https://bbc.github.io/rcookbook/) helpful, as well as the resources in [6 Sigma Sunday #2](https://utoronto.sharepoint.com/sites/ArtSci-STA/ISSC/SitePages/6%CF%83-Sunday--2.aspx) on using dplyr and ggplot.
+
+### Explore!
+
+```{r}
+
+```
+
+### Explore!
+
+```{r}
+
+```
+
+### Explore!
+
+```{r}
+
+```
+
+
+## 8. Choose one plot to improve and use/include the following:
+
+### A title and subtitle
+```{r}
+
+```
+
+### Labelled axes
+```{r}
+
+```
+
+### A caption acknowledging the data source + your name
+```{r}
+
+```
+
+### An appropriate colour palette
+```{r}
+
+```
+
+### Explicitly use a theme (check out this list of defaults included with ggplot or get the ggtheme package)
+```{r}
+
+```
+
+### BONUS: Add an annotation
+```{r}
+
+```
+
+
+## 9. Save the plot using ggsave().
+
+If you run `?ggsave`, it will tell you that "`ggsave()` is a convenient function for saving a plot. It defaults to saving the last plot that you displayed, using the size of the current graphics device. It also guesses the type of graphics device from the extension."
+
+```{r}
+
+```
+
+
+## 10. Share the plot and link to your commented code with all your working in #portfolio-building with a 1–2 sentence explanation by the end of Tuesday May 19 (bonus if you share it on Twitter with #TidyTuesday). Our ISSC Tweeps are on [this list](https://twitter.com/i/lists/1258455620111515648/members). Message me if you want to be added!
+
+
+Thanks everyone! 
+
+`r emo::ji("bellhop")` Please make sure you fill out the [weekly check-in](https://forms.office.com/Pages/ResponsePage.aspx?id=JsKqeAMvTUuQN7RtVsVSEOKHUU3SzAJJhmOKjJhDWEpUMFhXUVE4WUNBNzNKUEhCNDBBS1QwN0tSNC4u) by Thursday at 11:30 pm ET. 
