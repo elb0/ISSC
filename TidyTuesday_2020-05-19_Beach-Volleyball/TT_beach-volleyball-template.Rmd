@@ -12,7 +12,7 @@ urlcolor: #4B0082
 
 # Mini-challenge
 
-Your mission, should you choose to accept it, is to complete a mini-data visualisation challenge by the end of the day. You can use and edit this template RMD. My code is here: 
+Your mission, should you choose to accept it, is to complete a mini-data visualisation challenge by the end of the day. You can use and edit this template RMD. My code is here: https://github.com/elb0/ISSC/blob/master/TidyTuesday_2020-05-19_Beach-Volleyball/TT_beach-volleyball.Rmd. 
 
 ## 1. Set up GitHub
 
@@ -91,7 +91,7 @@ You might find the [Cookbook for R graphics from the BBC](https://bbc.github.io/
 
 ## 8. Choose one plot to improve and use/include the following:
 
-### A title and subtitle
+### ### A title and subtitle AND caption acknowledging the data source + your name
 ```{r}
 
 ```
@@ -101,10 +101,6 @@ You might find the [Cookbook for R graphics from the BBC](https://bbc.github.io/
 
 ```
 
-### A caption acknowledging the data source + your name
-```{r}
-
-```
 
 ### An appropriate colour palette
 ```{r}

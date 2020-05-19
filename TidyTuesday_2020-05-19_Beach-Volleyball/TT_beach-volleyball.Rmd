@@ -52,9 +52,16 @@ knitr::include_graphics("images/tidyverse_celestial.png")
 
 ```{r, message=FALSE}
 #install.packages("tidyverse")
+#install.packages("lubridate")
+#install.packages("ggthemes")
 library("tidyverse")
+library("lubridate")
+library("ggthemes")
 
-# Notice how I am using message=FALSE in this chunk to suppress the information about loading tidyverse. I don't what this as part of my final document because it isn't very pretty. Always suppress with care though, and if you're running in to issues, make sure to check this.
+# Notice how I am using message=FALSE in this chunk to suppress the information 
+# about loading tidyverse. I don't what this as part of my final document because 
+# it isn't very pretty. Always suppress with care though,
+# and if you're running in to issues, make sure to check this.
 ```
 
 
@@ -62,7 +69,7 @@ library("tidyverse")
 
 There is more than one way to get this data. I'm going to use the `tidytuesdayR` package becasue I installed it last week. Choose the way that is right for you from [these options.](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-05-19/readme.md#get-the-data-here)
 
-```{r}
+```{r, cache=TRUE}
 tuesdata <- tidytuesdayR::tt_load('2020-05-19')
 vb_matches <- tuesdata$vb_matches
 rm(tuesdata) # remove the original file because we don't need it any more
@@ -74,52 +81,55 @@ glimpse(vb_matches)
 ```
 
 ## 6. Wrangle the data
-This data is pretty clean and tidy but we might want to play with a few things.
+This data is pretty clean and tidy but we might want to play with a few things. I wanted to make seperate datasets so I could look at data by individual players across all their matches and look at general data about the players and the match.
 
 ```{r}
 vb_clean <- vb_matches %>% 
   rowid_to_column(var = "match_ID")    # make an ID columns
 
 l_player1 <- vb_clean %>% 
-  select(match_ID, contains("l_p1"), contains("l_player1")) %>% 
+  select(match_ID, gender, contains("l_p1"), contains("l_player1")) %>% 
   rename(setNames(names(.), gsub("l_p1_", "", names(.)))) %>% 
   rename(player = "l_player1") %>% 
-  select(match_ID, player, everything()) %>%  # will be better with relocate() in dplyr 1.0.0 I think
+  select(match_ID, player, everything()) %>%  # try relocate() in dplyr 1.0.0 
   mutate(status = "Lost", player_num = 1)
 
 l_player2 <- vb_clean %>% 
-  select(match_ID, contains("l_p2"), contains("l_player2")) %>% 
+  select(match_ID, gender, contains("l_p2"), contains("l_player2")) %>% 
   rename(setNames(names(.), gsub("l_p2_", "", names(.)))) %>% 
   rename(player = "l_player2") %>% 
   select(match_ID, player, everything()) %>% 
     mutate(status = "Lost", player_num = 2)
 
 w_player1 <- vb_clean %>% 
-  select(match_ID, contains("w_p1"), contains("w_player1")) %>% 
+  select(match_ID, gender, contains("w_p1"), contains("w_player1")) %>% 
   rename(setNames(names(.), gsub("w_p1_", "", names(.)))) %>% 
   rename(player = "w_player1") %>% 
   select(match_ID, player, everything()) %>% 
   mutate(status = "Won", player_num = 1)
 
 w_player2 <- vb_clean %>% 
-  select(match_ID, contains("w_p2"), contains("w_player2")) %>% 
+  select(match_ID, gender, contains("w_p2"), contains("w_player2")) %>% 
   rename(setNames(names(.), gsub("w_p2_", "", names(.)))) %>% 
   rename(player = "w_player2") %>% 
   select(match_ID, player, everything()) %>% 
   mutate(status = "Won", player_num = 1)
 
-# once I wrote this I realised it might be nice to write a function that does these similar steps instead...I'm not going to do that today, but let me know if you give it a go!
+# once I wrote this I realised it might be nice to write a function 
+# that does these similar steps instead...I'm not going to do that today, 
+# but let me know if you give it a go!
 
 player_matches <- bind_rows(l_player1, l_player2, w_player1, w_player2)
 
 # make a dataset with just unchaning information about each player
 player_info <- player_matches %>% 
-  select(player, birthdate, hgt, country) %>% 
+  select(player, gender, birthdate, hgt, country) %>% 
   unique()
 
 # make a dataset with just information about the match
 match_info <- vb_clean %>% 
-  select(-contains("p1"), -contains("p2"), -contains("player"))
+  select(-contains("p1"), -contains("p2"), -contains("player")) %>% 
+  separate(score, into=c("score_set1", "score_set2", "score_set3"), sep = ",")
 ```
 
 
@@ -129,30 +139,44 @@ You might find the [Cookbook for R graphics from the BBC](https://bbc.github.io/
 
 ### Explore!
 
-```{r}
-player_info %>% 
-  ggplot(aes(x = birthdate, y = hgt)) +
-  geom_point(aes(alpha = 0.5)) +
-  geom_smooth()
-
-```
-
-### Explore!
-
+What is the usual difference between scores in set 1 of a match?
 ```{r}
 
 ```
 
 ### Explore!
 
+What proportion of matches go to the third set? 
+
 ```{r}
 
 ```
 
+### Explore! 
+
+Win rates by players?
+
+```{r}
+
+```
+
+
+### Explore!
+
+Are players getting any taller?
+
+```{r}
+
+```
 
 ## 8. Choose one plot to improve and use/include the following:
 
-### A title and subtitle
+```{r}
+
+```
+
+
+### A title and subtitle AND caption acknowledging the data source + your name
 ```{r}
 
 ```
@@ -162,26 +186,22 @@ player_info %>%
 
 ```
 
-### A caption acknowledging the data source + your name
-```{r}
-
-```
-
 ### An appropriate colour palette
 ```{r}
+# Get my gender colours if you want them
+source("https://gist.githubusercontent.com/elb0/ae55809dbc610a50fba7bb5377497cd6/raw/1b17ddb92d45f5caee734ff2ff8e1774fed3ec91/suffrage-colours.R")
 
 ```
 
 ### Explicitly use a theme (check out this list of defaults included with ggplot or get the ggtheme package)
 ```{r}
-
+ 
 ```
 
 ### BONUS: Add an annotation
 ```{r}
 
 ```
-
 
 ## 9. Save the plot using ggsave().
 
@@ -191,10 +211,18 @@ If you run `?ggsave`, it will tell you that "`ggsave()` is a convenient function
 
 ```
 
+BONUS BONUS!: Cowplot
 
-## 10. Share the plot and link to your commented code with all your working in #portfolio-building with a 1–2 sentence explanation by the end of Tuesday May 19 (bonus if you share it on Twitter with #TidyTuesday). Our ISSC Tweeps are on [this list](https://twitter.com/i/lists/1258455620111515648/members). Message me if you want to be added!
+```{r}
+
+```
+
+## 10. Share the plot!
+
+Share the plot and link to your commented code with all your working in #portfolio-building with a 1–2 sentence explanation by the end of Tuesday May 19 (bonus if you share it on Twitter with #TidyTuesday). Our ISSC Tweeps are on [this list](https://twitter.com/i/lists/1258455620111515648/members). Message me if you want to be added!
 
 
 Thanks everyone! 
 
-`r emo::ji("bellhop")` Please make sure you fill out the [weekly check-in](https://forms.office.com/Pages/ResponsePage.aspx?id=JsKqeAMvTUuQN7RtVsVSEOKHUU3SzAJJhmOKjJhDWEpUMFhXUVE4WUNBNzNKUEhCNDBBS1QwN0tSNC4u) by Thursday at 11:30 pm ET. 
+
+Please make sure you fill out the [weekly check-in](https://forms.office.com/Pages/ResponsePage.aspx?id=JsKqeAMvTUuQN7RtVsVSEOKHUU3SzAJJhmOKjJhDWEpUMFhXUVE4WUNBNzNKUEhCNDBBS1QwN0tSNC4u) by Thursday at 11:30 pm ET. 
