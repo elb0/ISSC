@@ -113,7 +113,7 @@ w_player2 <- vb_clean %>%
   rename(setNames(names(.), gsub("w_p2_", "", names(.)))) %>% 
   rename(player = "w_player2") %>% 
   select(match_ID, player, everything()) %>% 
-  mutate(status = "Won", player_num = 1)
+  mutate(status = "Won", player_num = 2)
 
 # once I wrote this I realised it might be nice to write a function 
 # that does these similar steps instead...I'm not going to do that today, 
@@ -141,7 +141,15 @@ You might find the [Cookbook for R graphics from the BBC](https://bbc.github.io/
 
 What is the usual difference between scores in set 1 of a match?
 ```{r}
+match_info2 <- match_info %>% 
+  filter(score_set1 != "Forfeit or other") %>% 
+  filter(!grepl("retired", score_set1)) %>% 
+  rowwise() %>% 
+  mutate(diff_set1 = abs(eval(parse(text=score_set1))))
 
+match_info2 %>% 
+  ggplot(aes(x = diff_set1)) +
+  geom_histogram(binwidth = 0.99)
 ```
 
 ### Explore!
@@ -150,6 +158,10 @@ What proportion of matches go to the third set?
 
 ```{r}
 
+match_info %>%  
+  mutate(three_sets = ifelse(is.na(score_set3), FALSE, TRUE)) %>% 
+  summarise(prop_3_set = mean(three_sets))
+
 ```
 
 ### Explore! 
@@ -157,6 +169,34 @@ What proportion of matches go to the third set?
 Win rates by players?
 
 ```{r}
+winrate <- player_matches %>% 
+  mutate(w_l = ifelse(status=="Won", 1, 0)) %>% 
+  group_by(player) %>% 
+  summarise(prop_w = mean(w_l), matches = n()) %>% 
+  left_join(player_info, by = "player") %>% 
+  filter(!is.na(hgt)) %>% 
+  mutate(country_top = fct_lump_n(country, n = 5))
+
+table(winrate$country_top)
+
+winrate %>% 
+  filter(matches >= 100) %>%
+  ggplot(aes(x = hgt, y = prop_w)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~gender) +
+  geom_smooth(method="lm")
+  
+winrate %>% 
+  filter(matches >= 100) %>%
+  ggplot(aes(x = hgt, y = prop_w, colour = country_top, size = matches)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~gender)
+
+winrate %>% 
+  filter(matches >= 100) %>%
+  ggplot(aes(x = matches, y = prop_w)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~gender)
 
 ```
 
@@ -166,23 +206,87 @@ Win rates by players?
 Are players getting any taller?
 
 ```{r}
-
+player_info %>% 
+  filter(birthdate>1960) %>% 
+  filter(!is.na(hgt)) %>% 
+  ggplot(aes(x = birthdate, y = hgt)) +
+  geom_point(aes(alpha = 0.5)) +
+  geom_smooth(method="lm") + 
+  facet_wrap(~gender) + 
+  geom_hline(aes(yintercept = 68), color = "purple")
 ```
+
+```{r}
+player_info %>% 
+  filter(birthdate>1960) %>% 
+  filter(!is.na(hgt)) %>%
+  ggplot(aes(x = birthdate, fill=gender)) +
+  geom_histogram() +
+  facet_wrap(~gender, nrow=2)
+
+player_info %>% 
+  filter(birthdate>1960) %>% 
+  filter(!is.na(hgt)) %>% 
+  mutate(birth_decade = floor_date(birthdate, years(10))) %>% 
+  group_by(birth_decade, gender) %>% 
+  mutate(count = n()) %>% 
+  ggplot(aes(x = birth_decade, y = count, fill = gender)) +
+    geom_bar(stat="identity", position = "dodge")
+```
+
 
 ## 8. Choose one plot to improve and use/include the following:
 
+I've chosen the height/gender/age. 
+
+The average height of Canadian men is 5' 10" (70 inches) and the average height of Canadian women is 5' 4" (64 inches).
+Source: https://www.cbc.ca/news/health/height-growth-canada-1.3695398
+
 ```{r}
+can_pop <- tibble(hgt = c(70, 64), gender = c("M", "W"))
+
+winrate_filter <- winrate %>% 
+  filter(birthdate>1960) %>% 
+  filter(!is.na(hgt))
+
+base_plot <- winrate_filter %>% 
+  ggplot(aes(x = birthdate, y = hgt, color = gender)) +
+  geom_point(alpha = 0.25) +
+  geom_smooth(method="lm", formula = y ~ x, colour = "black", size = 1.5) +
+  facet_wrap(~gender) +
+  geom_hline(aes(yintercept = hgt), can_pop, color = "black", size = 1.5, lty = "dashed")
+base_plot
+
+## model for all
+summary(lm(hgt~birthdate, data = winrate_filter))
+
+## model with gender interaction
+summary(lm(hgt~birthdate*gender, data = winrate_filter))
 
 ```
 
 
 ### A title and subtitle AND caption acknowledging the data source + your name
 ```{r}
+p1 <- base_plot +
+  labs(title = "Heights by date of birth for beach volleyball players",
+         subtitle = "Restricted to competitors in the FIVB and AVP tournaments and born since 1960",
+       caption = "Source: BigTimeStats via #TidyTuesday\n Chart by: @liza_bolton")
 
+p1
 ```
 
 ### Labelled axes
 ```{r}
+# New facet label names for gender (don't want just letters)
+gender.labs <- c("Men", "Women")
+names(gender.labs) <- c("M", "W")
+
+p2 <- p1 + 
+  facet_grid(~gender, labeller = labeller(gender = gender.labs)) +
+  xlab("Date of birth") +
+  ylab("Height (inches)")
+p2
 
 ```
 
@@ -191,15 +295,38 @@ Are players getting any taller?
 # Get my gender colours if you want them
 source("https://gist.githubusercontent.com/elb0/ae55809dbc610a50fba7bb5377497cd6/raw/1b17ddb92d45f5caee734ff2ff8e1774fed3ec91/suffrage-colours.R")
 
+p3 <- p2 +
+  scale_color_manual(values = rev(suffrage_cols))
+p3
+
 ```
 
 ### Explicitly use a theme (check out this list of defaults included with ggplot or get the ggtheme package)
 ```{r}
+p4 <- p3 +
+  theme_fivethirtyeight() +
+  theme(legend.position = "none", axis.title = element_text()) +
+  xlab("Date of birth") +
+  ylab("Height (inches)")
+p4
  
 ```
 
 ### BONUS: Add an annotation
 ```{r}
+
+p5 <- p4 +
+  annotate("text", label = "Dotted lines show average current height of Canadians", x = as.Date("1980-01-01"), y = 65, )
+p5
+
+anno <- tibble(x1 = as.Date("1996-01-01"),
+                   y1 = 65.6, 
+                   gender = "M")
+
+p5_2 <- p4 + 
+  geom_text(data = anno, aes(x = x1,  y = y1, label = "Dotted lines show average\n current height of Canadians"), size = 3.5, colour = "black")
+
+p5_2
 
 ```
 
@@ -208,12 +335,66 @@ source("https://gist.githubusercontent.com/elb0/ae55809dbc610a50fba7bb5377497cd6
 If you run `?ggsave`, it will tell you that "`ggsave()` is a convenient function for saving a plot. It defaults to saving the last plot that you displayed, using the size of the current graphics device. It also guesses the type of graphics device from the extension."
 
 ```{r}
+ggsave("vb_heights_birthyear_gender.png")
+
+ggsave("vb_heights_birthyear_gender.png", width = 8, height = 4.5)
 
 ```
 
 BONUS BONUS!: Cowplot
 
 ```{r}
+no_gender <- winrate_filter %>% 
+  ggplot(aes(x = birthdate, y = hgt)) +
+  geom_point(alpha = 0.25, color = "blue") +
+  geom_smooth(method="lm", formula = y ~ x, colour = "black", size = 1.5) +
+  #labs(title = "Heights by date of birth for beach volleyball players",
+  #        subtitle = "Restricted to competitors in the FIVB and AVP tournaments and born since 1960") +
+  theme_fivethirtyeight() +
+  theme(legend.position = "none", axis.title = element_text()) +
+  xlab("Date of birth") +
+  ylab("Height (inches)")
+  
+no_gender
+
+
+base_plot_2 <- winrate_filter %>% 
+  ggplot(aes(x = birthdate, y = hgt, color = gender)) +
+  geom_point(alpha = 0.25) +
+  geom_smooth(method="lm", formula = y ~ x, colour = "black", size = 1.5) +
+  facet_wrap(~gender) +
+  geom_hline(aes(yintercept = hgt), can_pop, color = "black", size = 1.5, lty = "dashed") +
+  labs(caption = "Source: BigTimeStats via #TidyTuesday\n Chart by: Liza Bolton") +
+  theme_fivethirtyeight() +
+  theme(legend.position = "none", axis.title = element_text()) +
+  facet_grid(~gender, labeller = labeller(gender = gender.labs)) +
+  xlab("Date of birth") +
+  ylab("Height (inches)") +
+  scale_color_manual(values = rev(suffrage_cols)) +
+  geom_text(data = anno, aes(x = x1,  y = y1, label = "Dotted lines show average\n current height of Canadians"), size = 3.5, colour = "black")
+
+  
+base_plot_2
+
+blank <- ggplot() +
+  theme_fivethirtyeight() 
+
+library(cowplot)
+
+title <- ggdraw(blank) +
+  draw_label(
+    "   Are volley ball players getting shorter? Simpson's Paradox on the beach.",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) 
+
+
+step1 <- cowplot::plot_grid(no_gender, blank)
+final <- cowplot::plot_grid(title, step1, base_plot_2, rel_widths = c(1,1,2), nrow=3, rel_heights = c(1, 3, 5))
+
+
+save_plot("combo_vb_plot.png", final, base_width = 10, base_height = 8)
 
 ```
 
