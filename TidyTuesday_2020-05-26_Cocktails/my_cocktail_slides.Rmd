@@ -1,0 +1,75 @@
+---
+title: "TidyTuesday & Talk: Cocktail Hour"
+author: "Liza Bolton & the ISSC"
+institute: "Univeristy of Toronto"
+date: "2020-05-26"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+# Getting the data
+
+### Setting up libraries
+```{r, message=FALSE}
+library("tidyverse")
+```
+
+--
+
+### Load the data
+
+I am using the `tidytuesdayR` package this week.
+
+```{r, message=FALSE, cahce=TRUE}
+tuesdata <- tidytuesdayR::tt_load('2020-05-26')
+cocktails <- tuesdata$cocktails
+rm(tuesdata) # clears environment
+```
+
+---
+background-image: url("https://media.giphy.com/media/3o7TKDhgKC52OZhV0k/giphy.gif")
+background-size: cover
+class: center, bottom, inverse
+
+# Cocktails!
+
+---
+# Explore the data
+
+Which drinks in this database have the most ingredients?
+```{r, echo=FALSE}
+# install.packages("DT")
+cocktails %>% 
+  group_by(drink) %>% 
+  count() %>% 
+  arrange(desc(n)) %>% 
+  DT::datatable(fillContainer = FALSE, 
+                options = list(pageLength = 5))
+
+```
+
+---
+### Version 2
+
+Which drinks in this database have the most ingredients?
+```{r, echo=FALSE}
+#install.packages("kableExtra")
+# 
+cocktails %>% 
+  group_by(drink) %>% 
+  count() %>% 
+  arrange(desc(n)) %>% 
+  head(n = 10) %>% 
+  kableExtra::kable() %>%
+  kableExtra::kable_styling()
+
+```
+
+---
+class: middle
+# Thank you!
+You can contact me @Liza_Bolton
