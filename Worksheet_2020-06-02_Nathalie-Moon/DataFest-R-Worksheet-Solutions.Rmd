@@ -1,0 +1,304 @@
+---
+title: "DataFest R Workshop May 2020"
+author: "Nathalie Moon (adapted from Sotirios Damouras' 2019 Workshop)"
+date: "May 17, 2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# PART 1
+
+## Task 1.1
+Create an R project & associated folder for the workshop
+
+## Task 1.2
+Download and install the 'tidyverse' library
+
+```{r, include=FALSE}
+# install.packages("tidyverse") ## Note - you only need to do this once on your computer.  Once it is installed, you will only need to load it with the library() function
+library(tidyverse)
+```
+
+## Task 1.3
+Download the "dinesafe.csv" file from the workshop folder and save it in a project subfolder called "data". Then read the data into a data-frame called "dinesafe" 
+
+```{r}
+dinesafe <- read_csv("./data/dinesafe.csv")
+```
+
+## Task 1.4
+Use the `glimpse()` function to take a look at the `dinesafe` data frame's structure
+```{r}
+glimpse(dinesafe)
+```
+
+
+## Task 1.5
+Use the `View()` function to view the `dinesafe` data frame as a spreadsheet
+```{r}
+View(dinesafe)
+```
+
+
+\newpage
+# Part 2
+
+## Task 2.1
+Find all distinct establishment types. Hints: Are values of establishment in different rows or different columns?  Which of the `dplyr` functions can you use to remove duplicated values?
+
+```{r}
+dinesafe %>% 
+  distinct(ESTABLISHMENTTYPE)
+```
+
+
+## Task 2.2
+Find all inspections that took place on August 21st, 2018 (i.e. "2018-08-21").  Hints: (1) What variable contains the date of inspections? (2) Which `dplyr` function can you use to keep only observations for establishments that got inspected on this date?
+
+```{r}
+dinesafe %>%
+  filter(INSPECTION_DATE == "2018-08-21") %>%
+  distinct(ESTABLISHMENT_ID, .keep_all = TRUE) %>%   ### What happens if you exclude this line?
+  select(INSPECTION_DATE, ESTABLISHMENT_NAME) 
+```
+
+
+
+  
+## Task 2.3
+Find the total # of distinct inspections 
+
+```{r}
+dinesafe %>%
+  summarise(n_distinct(INSPECTION_ID))
+
+# or
+
+dinesafe %>%
+  distinct(INSPECTION_ID) %>%
+  summarise(n())
+```
+
+
+## Task 2.4
+Rank establishment types by total amount fined
+
+```{r}
+dinesafe %>% 
+  group_by(ESTABLISHMENTTYPE) %>% 
+  summarise(TOTAL_AMOUNT = sum(AMOUNT_FINED, na.rm = TRUE)) %>% 
+  arrange(desc(TOTAL_AMOUNT))
+```
+
+
+
+## Task 2.5
+Rank establishment types by average amount fined per establishment. Hints: (1) What variable might you want to group on?  (2) How can you calculate the average amount fined in each category?
+
+```{r}
+dinesafe %>% 
+  group_by(ESTABLISHMENTTYPE) %>% 
+  summarise(TOTAL_AMOUNT = sum(AMOUNT_FINED, na.rm = TRUE), 
+            N_EST = n_distinct(ESTABLISHMENT_ID)) %>% 
+  mutate( AVG_AMOUNT = TOTAL_AMOUNT / N_EST ) %>% 
+  arrange(desc(AVG_AMOUNT))
+```
+
+
+
+## Task 2.6 (Challenging)
+Find the establishment with the highest non-zero total fine amount whithin each establishment type.  Hints: (1) Start by calculating the total fine for each establishment (think of what variable to group on to achieve this), then create new groups based on `ESTABLISHMENTTYPE` and use one of the `dplyr` functions to keep only the observations with the highest total in each of these new groups.  Note - you'll need to use `ungroup` before regrouping the data into new groups.
+
+```{r}
+dinesafe %>% 
+  group_by(ESTABLISHMENTTYPE, ESTABLISHMENT_NAME, ESTABLISHMENT_ID) %>%  
+  summarise(TOTAL_AMOUNT = sum(AMOUNT_FINED, na.rm = TRUE)) %>%
+  filter(TOTAL_AMOUNT > 0) %>% 
+  ungroup() %>% 
+  group_by(ESTABLISHMENTTYPE) %>% 
+  top_n(1, TOTAL_AMOUNT)
+```
+
+
+\newpage
+# PART 3
+The file data/establishments.csv contains information on different establishments, in particular its neighborhood.
+
+```{r}
+# Read this file in R
+establishments <- read_csv("data/establishments.csv")
+glimpse(establishments)
+```
+
+# We will try to match this information with the dinesafe data.
+# Note that NOT ALL inspected establishments are present. 
+
+
+## Task 3.1
+Do an inner_join between the dinesafe and establishments tables. Hint: Which variable will you use to do the matching (it should be a variable which is present in both datasets)
+
+```{r}
+dinesafe %>% 
+  inner_join( establishments, by = "ESTABLISHMENT_ID" )  
+```
+
+
+
+## Task 3.2
+Use inner_join to rank the neighborhoods by the number of "C - Crucial" type infractions in restaurants. Hint: Either before or after joining, you'll need to use the `filter` function to keep only the observations we're interested in here (e.g. restaurants with inspection results of "C - Crucial"). After joining, think about which variable to group by before sorting. 
+
+```{r}
+dinesafe %>% 
+  filter( ESTABLISHMENTTYPE == "Restaurant",
+          SEVERITY == "C - Crucial") %>% 
+  inner_join(establishments, by = "ESTABLISHMENT_ID" )  %>% 
+  group_by(ESTABLISHMENT_NEIGHBORHOOD) %>% 
+  summarise( N_CRUCIAL_INFR = n() ) %>% 
+  arrange( desc(N_CRUCIAL_INFR) )
+```
+
+
+
+  
+## Task 3.3
+Find which (distinct) establishments did NOT get matched to a neighborhood. Hint: Use `anti_join`
+
+```{r}
+dinesafe %>% 
+  distinct( ESTABLISHMENT_ID, .keep_all = TRUE ) %>% 
+  anti_join( establishments, by = "ESTABLISHMENT_ID" ) 
+```
+
+
+
+\newpage
+# PART 4
+
+Our goal is to create a publication-quality graph with ggplot2. You will try to reproduce the Gapminder World Poster on World Health: https://www.gapminder.org/downloads/updated-gapminder-world-poster-2015/ using data in the gapminder package
+
+```{r}
+# load data 
+#install.packages("gapminder")
+library(gapminder)
+
+# Take a look at the data 
+glimpse(gapminder)
+```
+
+
+## Task 4.1
+Create a scatter-plot of Life Expectancy (lifeExp) versus GDP-per-capita (gdpPercap), for 2007 data
+
+```{r}
+gapminder %>% 
+  filter(year == 2007) %>%
+  ggplot(aes(y = lifeExp, x = gdpPercap)) +
+  geom_point()
+```
+
+
+## Task 4.2
+On your previous plot, change the x-axis (gdg/cap) to log-scale. Hint: look at the choices for "Scale" geometries on the `ggplot2` cheat sheet
+
+```{r}
+gapminder %>% 
+  filter(year == 2007) %>%
+  ggplot(aes(y = lifeExp, x = gdpPercap)) +
+  geom_point() + 
+  scale_x_log10() 
+```
+
+
+## Task 4.3
+On your previous plot, change change the size of the points according to the population of each country
+
+```{r}
+gapminder %>% 
+  filter( year == 2007) %>%
+  ggplot(aes(x = gdpPercap, y=lifeExp, size = pop)) +
+  geom_point() + 
+  scale_x_log10() 
+```
+
+
+## Task 4.4
+On your previous plot, change the color of the points according to the continent
+
+```{r}
+gapminder %>% 
+  filter( year == 2007) %>%
+  ggplot(aes(x = gdpPercap, y=lifeExp, 
+             size = pop, color = continent)) +
+  geom_point() + 
+  scale_x_log10() 
+```
+
+
+## Task 4.5
+On your previous plot, change the scale of each point to range from 1 to 14. Hint: Use the `scale_size(range = )` geometry to specify the range of sizes
+
+```{r}
+gapminder %>% 
+  filter( year == 2007) %>%
+  ggplot(aes(x = gdpPercap, y=lifeExp, 
+             size = pop, color = continent)) +
+  geom_point() + 
+  scale_x_log10() +  
+  scale_size(range = c(1,14)) 
+```
+
+
+## Task 4.6
+On your previous plot, label to each point with the name of the country; use options nudge_x = .02, alpha = .2 to make the labels readable. 
+
+```{r}
+gapminder %>% 
+  filter( year == 2007) %>%
+  ggplot(aes(x = gdpPercap, y=lifeExp, 
+             size = pop)) +
+  geom_point(aes(color = continent)) + 
+  scale_x_log10() +  
+  scale_size(range = c(1,14)) +
+  geom_text(aes(label = country),
+            nudge_x = 0.02, alpha = .2)
+```
+
+
+
+## Task 4.7
+Modify the previous plot to make facets for each continent
+
+```{r}
+gapminder %>% 
+  filter( year == 2007) %>%
+  ggplot(aes(x = gdpPercap, y=lifeExp, 
+             size = pop)) +
+  geom_point(aes(color = continent)) + 
+  scale_x_log10() +  
+  scale_size(range = c(1,14)) +
+  geom_text(aes(label = country),
+            nudge_x = 0.02, alpha = .2) + 
+  facet_wrap(facets = ~continent)
+```
+
+## Task 4.8
+If your x-axis labels are hard to read due to overlapping, you may want to rotate theme. You can use the `theme(axis.text.x=element_text(angle = 90, hjust = 0))` geometry to adjust this; change the values of `angle` and `hjust` to figure out the effect of these two arguments and find a combination that makes the labels easier to read.
+
+```{r}
+gapminder %>% 
+  filter( year == 2007) %>%
+  ggplot(aes(x = gdpPercap, y=lifeExp, 
+             size = pop)) +
+  geom_point(aes(color = continent)) + 
+  scale_x_log10() +  
+  scale_size(range = c(1,14)) +
+  geom_text(aes(label = country),
+            nudge_x = 0.02, alpha = .2) + 
+  facet_wrap(facets = ~continent) + 
+  theme(axis.text.x = element_text(angle=45, hjust=1))
+```
