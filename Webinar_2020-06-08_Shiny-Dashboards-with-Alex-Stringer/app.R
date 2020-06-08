@@ -1,6 +1,6 @@
 ### Shiny Dashboard: COVID-19 Rolling Averages ###
 # Created by: Alex Stringer
-# For: Statistical Sciences summer school
+# For: Independent Summer Statistics Community
 # Inspired by: https://art-bd.shinyapps.io/covid19canada/
 
 # First, install shiny and shiny dashboards
@@ -8,7 +8,7 @@
 
 # I'm loading my secret functions. I'll share these after the workshop. They
 # form "answers" to "exercises" I will assign throughout the workshop.
-source("/Users/alexstringer/teaching/s20/summerschool/shinydashboardworkshop/secretfunctions.R")
+# source("/Users/alexstringer/teaching/s20/summerschool/shinydashboardworkshop/secretfunctions.R")
 
 # Load them into memory
 library(shiny)
