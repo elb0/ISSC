@@ -1,0 +1,349 @@
+---
+title: "Recreating the bloody graph"
+output: html_notebook
+---
+
+# Set up the packages we need
+
+# Load the data
+
+We're are loading the data from last year's Halloween TidyTuesday dataset. You can see the information about this dataset here: https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-10-22. 
+
+```{r}
+library(tidyverse)
+defaultW <- getOption("warn") 
+
+options(warn = -1) 
+
+horror_movies <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-10-22/horror_movies.csv")
+```
+
+
+#Demonstration
+
+#This is adapted from Hadley Wickham's R 4 Data Science and can be found here: https://github.com/hadley/r4ds/blob/master/visualize.Rmd
+
+# Cleaning up the data
+
+Among missing observations there are transformations we should make on the variables pertaining to dates (days, months, years, etc.) to make them functional. 
+
+At times (i.e. most of the tutorial) we will make use of the tidyverse pipeline that allows us to manipulation or variables without having to use the built in slower base R commands.
+
+Tip: The keyboard short cut to make a pipe (%>%) is Cmd+Shift+M on Mac and Ctrl+Shift+M on PC. 
+
+#Example: #adapted from https://github.com/IEORTools/tidytuesday/blob/master/horror_movies.R
+
+Among the variables in `horror_movies` are:
+
+```{r}
+#install.packages("lubridate")
+library(lubridate)
+defaultW <- getOption("warn") 
+
+options(warn = -1) 
+
+attach(horror_movies)
+budget_nm <- gsub("[[:punct:]]","",budget)
+budget_nm <- as.numeric(budget_nm)
+
+#substr(variable, start, stop) is a way to extract the dollar units from the budget
+budget_MU <- substr(budget,1,1)
+
+log_budget_nm <- log(budget_nm)
+horror_temp<-horror_movies %>% add_column(budget_nm, log_budget_nm)
+
+
+horror_temp <- horror_temp[which(budget_MU=="$"),]
+head(horror_temp[,c("budget_nm","review_rating")])
+glimpse(horror_temp)
+```
+
+Question:
+
+1. What does the gsub() function do to the budget variable? 
+
+### Creating a ggplot
+
+Consider the two variables we are working with from above: 
+
+1. `review_rating`, a movie's rating from 0 to 10.
+
+2. `budget`, Budget (sub-setted by US dollars/EUROs, etc.).
+
+The first argument of `ggplot()` is the dataset to use in the graph. All we have created is a coordinate system. Without specifying another layer to the plot, we essentially have an empty plot. 
+
+
+```{r}
+ggplot(horror_temp, aes(x=review_rating, y=budget_nm)) 
+```
+
+```{r}
+
+ggplot(horror_temp, aes(x=review_rating, y=budget_nm)) +
+  geom_point() +
+  ggtitle("Tidy Tuesday Horror Movie Ratings vs Budget") +
+  ylab("Budget") +
+  xlab("Movie Rating")
+```
+The scale of measurement is too large for budget. We may be better off looking at the log of budget.  Here plot `review_rating` on the x-axis and `log(budget)` on the y-axis:
+
+```{r}
+#check the budget on the log scale
+
+ggplot(horror_temp, aes(x=review_rating, y=log_budget_nm)) +
+  geom_point() +
+  geom_smooth(method='lm',formula=y~x) +
+  ggtitle("Tidy Tuesday Horror Movie Ratings vs Budget") +
+  ylab("log(Budget)") +
+  xlab("Movie Rating")
+
+```
+
+The plot shows that the 'log(Budget)' and 'movie rating' does not appear to be strongly related. In other words, within the context of dollars ($) it does not appear that budgets don't help with horror movie ratings. 
+
+##Exercises
+
+#Let's glimpse at our data. What could have mentioned earlier is that ggplot is a feature inside of tidyverse, but you can also install it externally. 
+```{r}
+#install.packages("ggplot2")
+library(tidyverse)
+
+glimpse(horror_movies)
+#view(horror_movies)
+
+#?help(mpg)
+```
+Have a look at the descriptions for each of the variables. https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-10-22
+
+1.  Run `ggplot(data = horror_movies)`. What do you see?
+
+2.  How many rows are in `horror_movies`? How many columns?
+
+3.    How many levels does `release_country` variable have?  Glimpse at  the`release_country` to find out.
+
+```{r, message=FALSE}
+defaultW <- getOption("warn") 
+
+options(warn = -1) 
+#glimpse(language)
+#language=as.factor(release_country)
+#levels(release_country)
+```
+
+
+4. Let's  make a boxplot for 'release date' versus 'frequency' per month.
+```{r}
+
+horror_movies <- horror_movies %>% 
+  filter(!is.na(release_date)) %>% 
+  mutate(month = month(dmy(release_date), label=T, abbr=F)) %>% 
+  # Remove if month is unknown
+  filter(!is.na(month))
+
+
+#movies released per country
+total_country = horror_movies %>% 
+  count(release_country, name="total_country")
+
+# create the data frame for release month vs country
+horror_movies_month = horror_movies %>% 
+
+  count(release_country, month) %>% 
+
+  #From help(left_join): The mutating joins add columns from y to x, matching rows based on the keys. Merge totals  by adding columns from y to x per month and country;
+  left_join(total_country) %>%
+  
+  # Filter: take only countries with more than 5 movie releases into account
+  filter(total_country >= 5) %>% 
+  mutate(percentage = n / total_country) 
+  
+  #Let's see what we have created
+  view(horror_movies_month)
+  
+ggplot(data=horror_movies_month, aes(x=month, y=percentage, fill=reorder(month, total_country, sum))) + geom_boxplot()
+
+```
+
+     
+ 5. What if we want to look at the percentages for countries with at least 10 release dates?  Change the box plot accordingly. 
+
+6. What happens if you  want to make a boxplot of `percent` vs `month` for Spain? Hint:
+
+```{r}
+horror_movies_spain <- horror_movies_month %>% filter(release_country == "Spain")
+glimpse(horror_movies_spain)
+```
+
+
+##Aesethetic mappings
+
+>#Allow us to take a closer look at potentially missing information, such as outliers. 
+
+```{r}
+ggplot(horror_temp, aes(x=review_rating, y=budget_nm))+
+  geom_point() + 
+  geom_point(data = filter(horror_temp, review_rating > 5, budget_nm > 1.0e+08), colour = "red", size = 2.2) + ggtitle("Tidy Tuesday Horror Movie Ratings vs Budget") +
+  ylab("Budget") +
+  xlab("Movie Rating")
+```
+You can add a third variable, like `genre`, to a two dimensional boxplot by mapping it to an aesthetic.  Aesthetics include things like the size, the shape, or the color of your plots. For example, let's suppose we wanted to know the budget of each  movie rating (in US dollars)  changed for each month. Further suppose we wanted to know whether certain movie ratings had higher budgets. 
+
+You can convey information about your data by mapping the aesthetics in your plot to the variables in your dataset. For example, we can map a colour to the  `movie_rating` to reveal the budget for each movie rating.
+
+````{r}
+library(tidyverse)
+library(scales)
+library(lubridate)
+movies <-horror_movies  %>%  mutate(release_parsed = parse_date(release_date,
+                                     format = "%d-%b-%y") )
+#if the movies release parsed is na then take the movies release date  already expressed as years
+#Otherwise take the release date_date which is in years
+movies <- movies %>% mutate(years=ifelse(is.na(release_parsed),
+                             release_date,
+                              year(release_parsed))) %>% 
+  mutate(movies,month = month.abb[month(movies$release_parsed)]) %>%
+  mutate(budget_m= as.numeric(gsub("[[:punct:]]","",budget))) 
+
+
+budget_MU <- substr(movies$budget,1,1)
+
+
+movies_h<- movies[which(budget_unit=="$"),]
+
+movies_h %>% 
+  group_by(month, movie_rating) %>% 
+  summarize(revenue=sum(budget_m)) %>% 
+  ggplot(aes(month, revenue)) + 
+  geom_col(aes(fill=movie_rating)) + 
+  scale_y_continuous(labels=dollar_format()) + 
+  
+  scale_fill_manual("legend", values = c("E" = "yellow", "NOT RATED" = "orange", 
+                                         "PG" = "black", "PG-13"="brown","R"="gold", 
+                                         "TV-14"="gray", "TV-MA"="red", "UNRATED"="Wheat",
+                                         "NA=pink1")) +
+  labs(x="", y="movie budget", title="Worldwide Film Budget by month")
+
+```
+For the month of October it seems as that the budget is greater for almost all movie ratings. However, the budget is higher for rated R movies. This is true for US dollars; the trend may differ for EUROs  (difference audience).
+
+#Challenge: Replace $(dollars) by euros to determine if there is a difference in  budgets across the different months (and movie ratings). 
+
+```{r}
+#Hint we may want to change the units of this variable.   
+#movies_h<- movies[which(budget_MU=="$"),]
+```
+
+
+## Facets
+
+One way to add additional variables is with aesthetics. Another way, particularly useful for categorical variables, is to split your plot into facets, subplots that each display one subset of the data. 
+
+To facet your plot by a single variable, use `facet_wrap()`. The first argument of `facet_wrap()` should be a formula, which is the name of your data structure that you wish to subset on. Thus variable that you pass to `facet_wrap()` should be discrete.  
+
+
+```{r}
+movies_h %>% 
+  group_by(month, movie_rating) %>% 
+  summarize(revenue=sum(budget_m)) %>% 
+  ggplot(aes(month, revenue)) + 
+  geom_col(aes(fill=movie_rating)) + 
+  scale_y_continuous(labels=dollar_format()) + 
+  
+  scale_fill_manual("legend", values = c("E" = "yellow", "NOT RATED" = "orange", 
+                                         "PG" = "black", "PG-13"="brown","R"="gold", 
+                                         "TV-14"="gray", "TV-MA"="red", "UNRATED"="Wheat",
+                                         "NA=pink1")) +
+  labs(x="", y="movie budget", title="Worldwide Film Budget by month")  +facet_wrap(~movie_rating)
+```
+
+#In American films rated R films tend to have the highest budget. 
+
+Question:
+
+1.  What does the plot above tell us about the budget (in dollars) for each each movie rating type? Note this is most likely USA when we subset based on dollars. 
+
+#challenge 
+
+Code adapted from https://twitter.com/committedtotape/status/1187109093003223040
+
+To complete the graphic you need to download [Ghostscript and Extrafont](https://cran.r-project.org/web/packages/extrafont/README.html)
+
+```{r, message=FALSE}
+#install.packages("extrafont")
+library(extrafont)
+defaultW <- getOption("warn") 
+
+options(warn = -1) 
+
+#extrafont::loadfonts(device="win")
+#extrafont::fonttable()
+
+#movie count by each month/year
+#warning regarding some dates not parsed as they only contain the year of release, not the full date
+month_year_count <- horror_movies %>% 
+  filter(!is.na(release_date)) %>% 
+  mutate(month_year = floor_date(dmy(release_date), "months")) %>% 
+  count(month_year)%>% 
+  mutate(n=n*-1)%>% 
+  filter(!is.na(month_year))
+
+ggplot(month_year_count, aes(x=month_year, y=n))+
+#round segment lines look more like dripping blood then squared columns
+geom_segment(aes(xend=month_year, yend=0), colour="red", lineend = "round", size=4) + 
+#add some extra drip to the october peaks
+geom_point(data=filter(month_year_count, month(month_year)==10), 
+           aes(x=month_year, y=n), 
+           colour="dark red", fill="red", size=6, shape=21, stroke=2)+
+geom_hline(yintercept=0, colour="red", size=5)+
+#annotations
+geom_text(aes(x=as.Date("2012-12-01"), y=-110,
+              label="What's your\nfavourite\nscary movie\nmonth?"), 
+              family="YouMurderer BB", 
+          colour="red",
+          size=14)+
+  geom_text(aes(x=as.Date("2015-10-01"), y=-130,
+                label="October sees the highest number of horror films released,\nwhich (ironically) is not shocking at all"),
+            family="Andale Mono", 
+            colour="white",
+            size=3,
+            hjust=0.5) + 
+  geom_text(aes(x=as.Date("2013-12-01"), y=-15,
+            label="December is not a good month for catching up a horror movie"), 
+            family="Andale Mono", 
+            colour="white",
+            size=3,
+            hjust=0)+ 
+  #some extra drip to link october peaks to annotation
+  
+  geom_segment(data=filter(month_year_count, month(month_year)==10,year(month_year)%in% c(2014, 2015, 2016)),
+               aes(x=month_year, xend=month_year,
+                   y=-125, yend=n-5),
+               colour="red",size=1.5, lineend="round", linetype=3)+
+  #axis labels
+  scale_x_date(date_breaks ="years", date_labels="%Y", position="top") +
+  scale_y_continuous(breaks=seq(0,-150,-25),labels=seq(0,150, 25), position="right")+ labs(caption="Graphic: @committedtotape\nSource:IMDb",
+                                                                                           x="Number of Horror Movie Releases by month", y="")+
+theme_void()+
+  theme(plot.background = element_rect(fill="gray20", colour="gray20"),
+        axis.title = element_text(colour ="white", family="YouMurderer BB", size=14), 
+        axis.text.x.top = element_text(colour="white", angle=45, family="YouMurderer BB", hjust=1, size=14),
+        axis.text.y.right=element_text(colour="white", family="YouMurderer BB", size=14),
+        plot.caption = element_text(color="red", family="Courier New", size=10),
+        plot.margin = margin(10,10,10,10))
+
+ggsave("horror movie releases.png", width=8, height=8)
+```
+
+##Resources 
+
+We have attached a link to the free online version of the ggplot2 text book here:
+
+1. [ggplot2 handbook](https://ggplot2-book.org/introduction.html)
+ 
+We have attached slides provided by Liza about working with colour palettes in R: 
+
+2. [Colour palattes](https://www.dataembassy.co.nz/Liza-colours-in-R#1)
+
+
+
+    
